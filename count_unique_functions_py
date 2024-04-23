@@ -1,0 +1,48 @@
+import os
+import ast
+import difflib
+
+def extract_functions(filepath):
+    functions = {}
+
+    with open(filepath, "r") as file:
+        tree = ast.parse(file.read(), filename=filepath)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef):
+                function_name = node.name
+                function_code = ast.unparse(node)
+                functions[function_name] = function_code
+
+    return functions
+
+def are_similar(function1, function2):
+    # Calculate the similarity ratio between the two function codes
+    similarity_ratio = difflib.SequenceMatcher(None, function1, function2).ratio()
+    # If similarity ratio is above a threshold, consider them similar
+    return similarity_ratio > 0.8  # Adjust the threshold as needed
+
+def count_unique_functions(directory):
+    unique_functions = set()
+
+    for root, _, files in os.walk(directory):
+        for file in files:
+            if file.endswith(".py"):
+                filepath = os.path.join(root, file)
+                functions = extract_functions(filepath)
+                for function_code in functions.values():
+                    is_unique = True
+                    for unique_function_code in unique_functions:
+                        if are_similar(function_code, unique_function_code):
+                            is_unique = False
+                            break
+                    if is_unique:
+                        unique_functions.add(function_code)
+
+    return len(unique_functions)
+
+if __name__ == "__main__":
+    directory = input("Enter the directory path to analyze: ")
+    unique_function_count = count_unique_functions(directory)
+    print(f"Total unique functions found: {unique_function_count}")
+
+
